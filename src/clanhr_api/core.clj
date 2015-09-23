@@ -8,12 +8,11 @@
             [result.core :as result]
             [clanhr.analytics.errors :as errors]))
 
-(defn client
+(defn- setup
   "Creates configuration for executing requests"
   [opts]
   (merge opts
-         {:live true
-          :directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
+         {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
           :absences-api (or (env :clanhr-absences-api) "http://absences.api.staging.clanhr.com")
           :notifications-api (or (env :clanhr-notifications-api) "http://notifications.api.staging.clanhr.com")
           :http-opts {:connection-timeout 1000
@@ -27,10 +26,10 @@
 
 (defn- fetch-response
   "Fetches the response for a given URL"
-  [client data]
+  [data]
   (try
     (let [result-ch (chan 1)
-          async-stream (http/get (:url data) (:http-ops client))]
+          async-stream (http/get (:url data) (:http-ops data))]
       (d/on-realized async-stream
                      (fn [x]
                        (if x
@@ -46,14 +45,15 @@
 
 (defn- prepare-data
   "Builds data from data"
-  [client data]
-  (let [host (get client (:service data))
+  [data]
+  (let [data (setup data)
+        host (get data (:service data))
         url (str host (:path data))]
     (assoc data :host host
                 :url url)))
 
 (defn http-get
   "Makes a GET request to the given API"
-  [client data]
-  (let [result-ch (fetch-response client (prepare-data client data))]
+  [data]
+  (let [result-ch (fetch-response (prepare-data data))]
     result-ch))

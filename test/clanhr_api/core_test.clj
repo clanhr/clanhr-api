@@ -7,11 +7,8 @@
 (defn- test-api-home
   "Makes a request to api's root"
   [service-key expected-name]
-  (let [client (clanhr-api/client {:live true})
-        result-ch (clanhr-api/http-get client {:service service-key
-                                               :path "/"})]
+  (let [result-ch (clanhr-api/http-get {:service service-key :path "/"})]
     (is result-ch)
-
     (let [result (<!! result-ch)
           data (:data result)]
       (is (result/succeeded? result))
@@ -24,8 +21,6 @@
   #_(test-api-home :notifications-api "ClanHR Notifications API"))
 
 (deftest error-404
-  (let [client (clanhr-api/client {:live true})
-        result (<!! (clanhr-api/http-get client {:service :directory-api :path "/waza"}))]
+  (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/waza"}))]
     (result/failed? result)))
-
 

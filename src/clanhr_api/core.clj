@@ -29,7 +29,7 @@
   [data]
   (try
     (let [result-ch (chan 1)
-          async-stream (http/get (:url data) (:http-ops data))]
+          async-stream ((:method-fn data) (:url data) (:http-ops data))]
       (d/on-realized async-stream
                      (fn [x]
                        (if x
@@ -43,17 +43,39 @@
     (catch Exception e
       (go (errors/exception e)))))
 
+(defn- authentify
+  "Builds proper auth headers"
+  [data http-opts]
+  (if-let [token (:token data)]
+    (assoc http-opts :headers {"x-clanhr-auth-token" token})
+    http-opts))
+
 (defn- prepare-data
   "Builds data from data"
-  [data]
+  [data method]
   (let [data (setup data)
         host (get data (:service data))
-        url (str host (:path data))]
+        url (str host (:path data))
+        http-opts (authentify data (:http-opts data))]
     (assoc data :host host
-                :url url)))
+                :url url
+                :http-opts http-opts
+                :method-fn (cond
+                             (= :post method) http/post
+                             (= :put method) http/put
+                             :else http/get))))
 
 (defn http-get
   "Makes a GET request to the given API"
   [data]
-  (let [result-ch (fetch-response (prepare-data data))]
-    result-ch))
+  (fetch-response (prepare-data data :get)))
+
+(defn http-post
+  "Makes a POST request to the given API"
+  [data]
+  (fetch-response (prepare-data data :post)))
+
+(defn http-put
+  "Makes a PUT request to the given API"
+  [data]
+  (fetch-response (prepare-data data :put)))

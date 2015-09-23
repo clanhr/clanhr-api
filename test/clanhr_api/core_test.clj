@@ -23,4 +23,3 @@
 (deftest error-404
   (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/waza"}))]
     (result/failed? result)))
-

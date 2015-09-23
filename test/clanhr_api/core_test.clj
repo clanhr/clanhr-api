@@ -22,3 +22,10 @@
   (test-api-home :directory-api "ClanHR Directory API")
   (test-api-home :absences-api "ClanHR Absences API")
   #_(test-api-home :notifications-api "ClanHR Notifications API"))
+
+(deftest error-404
+  (let [client (clanhr-api/client {:live true})
+        result (<!! (clanhr-api/http-get client {:service :directory-api :path "/waza"}))]
+    (result/failed? result)))
+
+

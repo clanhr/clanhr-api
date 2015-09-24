@@ -6,7 +6,8 @@
             [aleph.http :as http]
             [cheshire.core :as json]
             [result.core :as result]
-            [clanhr.analytics.errors :as errors]))
+            [clanhr.analytics.errors :as errors]
+            [clanhr.analytics.metrics :as metrics]))
 
 (defn- setup
   "Creates configuration for executing requests"
@@ -18,10 +19,21 @@
           :http-opts {:connection-timeout 1000
                       :request-timeout 1000}}))
 
+(defn- track-api-response
+  "Register metrics"
+  [data response]
+  (metrics/api-request (or (env :clanhr-env) "test")
+                       (:service data)
+                       (:request-time response)
+                       data
+                       response)
+  response)
+
 (defn- prepare-response
   "Handles post-response"
-  [response]
+  [data response]
   (try
+    (track-api-response data response)
     (-> response
         (assoc :status (:status response))
         (assoc :data (json/parse-string (slurp (:body response)) true)))
@@ -30,13 +42,15 @@
 
 (defn- prepare-error
   "Handles post-response errors"
-  [response]
+  [data response]
   (try
     (if (instance? Throwable response)
       (do
-        {:message (.getMessage response)
-         :data (.getData response)
-         :body (json/parse-string (slurp (:body (.getData response))) true)})
+        (track-api-response data
+          {:status (.getMessage response)
+           :data (.getData response)
+           :request-time (:request-time (.getData response))
+           :body (json/parse-string (slurp (:body (.getData response))) true)}))
       (-> response
           (assoc :status (-> response :data :cause))
           (assoc :data (slurp (-> response :data :body)))))
@@ -52,11 +66,11 @@
       (d/on-realized async-stream
                      (fn [x]
                        (if x
-                         (>!! result-ch (result/success (prepare-response x)))
-                         (>!! result-ch (result/failure (prepare-response x))))
+                         (>!! result-ch (result/success (prepare-response data x)))
+                         (>!! result-ch (result/failure (prepare-response data x))))
                        (close! result-ch))
                      (fn [x]
-                       (>!! result-ch (result/failure (prepare-error x)))
+                       (>!! result-ch (result/failure (prepare-error data x)))
                        (close! result-ch)))
       result-ch)
     (catch Exception e
@@ -87,6 +101,7 @@
     (assoc data :host host
                 :url url
                 :http-opts http-opts
+                :request-method method
                 :method-fn (cond
                              (= :post method) http/post
                              (= :put method) http/put

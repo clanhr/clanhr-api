@@ -9,7 +9,9 @@
             [clanhr.analytics.errors :as errors]
             [clanhr.analytics.metrics :as metrics]))
 
-(def ^:dynamic *default-timeout* (or (env :clanhr-internal-api-timeout) (* 10 1000)))
+(def ^:dynamic *default-timeout* (Integer/parseInt
+                                   (or (env :clanhr-internal-api-timeout)
+                                       (str (* 10 1000)))))
 
 (defn- setup
   "Creates configuration for executing requests"
@@ -53,13 +55,15 @@
             {:status 408
              :request-time (-> data :http-opts :request-timeout)
              :body {:message "Timed out"}}))
-      (instance? Throwable response)
+      (instance? clojure.lang.ExceptionInfo response)
         (do
           (track-api-response data
             {:status (.getMessage response)
              :data (.getData response)
              :request-time (:request-time (.getData response))
              :body (json/parse-string (slurp (:body (.getData response))) true)}))
+      (instance? Throwable response)
+        response
       :else
         (-> response
             (assoc :status (-> response :data :cause))

@@ -9,6 +9,8 @@
             [clanhr.analytics.errors :as errors]
             [clanhr.analytics.metrics :as metrics]))
 
+(def ^:dynamic *default-timeout* 1000)
+
 (defn- setup
   "Creates configuration for executing requests"
   [opts]
@@ -16,8 +18,8 @@
          {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
           :absences-api (or (env :clanhr-absences-api) "http://absences.api.staging.clanhr.com")
           :notifications-api (or (env :clanhr-notifications-api) "http://notifications.api.staging.clanhr.com")
-          :http-opts {:connection-timeout 1000
-                      :request-timeout 1000}}))
+          :http-opts {:connection-timeout *default-timeout*
+                      :request-timeout *default-timeout*}}))
 
 (defn- track-api-response
   "Register metrics"
@@ -44,16 +46,24 @@
   "Handles post-response errors"
   [data response]
   (try
-    (if (instance? Throwable response)
-      (do
-        (track-api-response data
-          {:status (.getMessage response)
-           :data (.getData response)
-           :request-time (:request-time (.getData response))
-           :body (json/parse-string (slurp (:body (.getData response))) true)}))
-      (-> response
-          (assoc :status (-> response :data :cause))
-          (assoc :data (slurp (-> response :data :body)))))
+    (cond
+      (instance? java.util.concurrent.TimeoutException response)
+        (do
+          (track-api-response data
+            {:status 408
+             :request-time (-> data :http-opts :request-timeout)
+             :body {:message "Timed out"}}))
+      (instance? Throwable response)
+        (do
+          (track-api-response data
+            {:status (.getMessage response)
+             :data (.getData response)
+             :request-time (:request-time (.getData response))
+             :body (json/parse-string (slurp (:body (.getData response))) true)}))
+      :else
+        (-> response
+            (assoc :status (-> response :data :cause))
+            (assoc :data (slurp (-> response :data :body)))))
     (catch Exception e
       (errors/exception e))))
 

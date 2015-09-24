@@ -13,6 +13,7 @@
           data (:data result)]
       (is (result/succeeded? result))
       (is data)
+      (is (= 200 (:status result)))
       (is (= (:name data) expected-name)))))
 
 (deftest apis-home
@@ -20,6 +21,13 @@
   (test-api-home :absences-api "ClanHR Absences API")
   #_(test-api-home :notifications-api "ClanHR Notifications API"))
 
-(deftest error-404
+(deftest error
   (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/waza"}))]
     (result/failed? result)))
+
+(deftest test-post
+  (let [result (<!! (clanhr-api/http-post {:service :directory-api :path "/login"
+                                           :body {:email "donbonifacio@gmail.com"
+                                                  :password "wazabi"}}))]
+    (result/failed? result)
+    (is (= "invalid-email-or-password" (first (-> result :body :errors))))))

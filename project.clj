@@ -6,5 +6,5 @@
                  [environ "1.0.1"]
                  [aleph "0.4.0"]
                  [cheshire "5.5.0"]
-                 [clanhr/analytics "1.4.1"]
+                 [clanhr/analytics "1.5.0"]
                  [clanhr/result "0.9.3"]])

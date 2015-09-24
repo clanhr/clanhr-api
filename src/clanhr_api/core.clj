@@ -9,7 +9,7 @@
             [clanhr.analytics.errors :as errors]
             [clanhr.analytics.metrics :as metrics]))
 
-(def ^:dynamic *default-timeout* 1000)
+(def ^:dynamic *default-timeout* (or (env :clanhr-internal-api-timeout) (* 10 1000)))
 
 (defn- setup
   "Creates configuration for executing requests"

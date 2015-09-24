@@ -21,15 +21,34 @@
 (defn- prepare-response
   "Handles post-response"
   [response]
-  (-> response
-      (assoc :data (json/parse-string (slurp (:body response)) true))))
+  (try
+    (-> response
+        (assoc :status (:status response))
+        (assoc :data (json/parse-string (slurp (:body response)) true)))
+    (catch Exception e
+      (errors/exception e))))
+
+(defn- prepare-error
+  "Handles post-response errors"
+  [response]
+  (try
+    (if (instance? Throwable response)
+      (do
+        {:message (.getMessage response)
+         :data (.getData response)
+         :body (json/parse-string (slurp (:body (.getData response))) true)})
+      (-> response
+          (assoc :status (-> response :data :cause))
+          (assoc :data (slurp (-> response :data :body)))))
+    (catch Exception e
+      (errors/exception e))))
 
 (defn- fetch-response
   "Fetches the response for a given URL"
   [data]
   (try
     (let [result-ch (chan 1)
-          async-stream ((:method-fn data) (:url data) (:http-ops data))]
+          async-stream ((:method-fn data) (:url data) (:http-opts data))]
       (d/on-realized async-stream
                      (fn [x]
                        (if x
@@ -37,7 +56,7 @@
                          (>!! result-ch (result/failure (prepare-response x))))
                        (close! result-ch))
                      (fn [x]
-                       (>!! result-ch (result/failure x))
+                       (>!! result-ch (result/failure (prepare-error x)))
                        (close! result-ch)))
       result-ch)
     (catch Exception e
@@ -50,13 +69,21 @@
     (assoc http-opts :headers {"x-clanhr-auth-token" token})
     http-opts))
 
+(defn- add-body
+  "Adds proper body to be sent"
+  [http-opts data]
+  (if-let [body (:body data)]
+    (assoc http-opts :body (if (map? body) (json/generate-string body) body))
+    http-opts))
+
 (defn- prepare-data
   "Builds data from data"
   [data method]
   (let [data (setup data)
         host (get data (:service data))
         url (str host (:path data))
-        http-opts (authentify data (:http-opts data))]
+        http-opts (-> (authentify data (:http-opts data))
+                      (add-body data))]
     (assoc data :host host
                 :url url
                 :http-opts http-opts

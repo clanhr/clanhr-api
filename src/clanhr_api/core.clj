@@ -53,13 +53,14 @@
         (do
           (track-api-response data
             {:status 408
+             :error (str "Error getting " (:url data))
              :request-time (-> data :http-opts :request-timeout)
              :body {:message "Timed out"}}))
       (instance? clojure.lang.ExceptionInfo response)
         (do
           (track-api-response data
             {:status (.getMessage response)
-             :data (.getData response)
+             :error (str "Error getting " (:url data))
              :request-time (:request-time (.getData response))
              :body (json/parse-string (slurp (:body (.getData response))) true)}))
       (instance? Throwable response)

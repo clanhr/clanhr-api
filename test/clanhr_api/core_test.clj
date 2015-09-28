@@ -10,7 +10,7 @@
   (let [result-ch (clanhr-api/http-get {:service service-key :path "/"})]
     (is result-ch)
     (let [result (<!! result-ch)
-          data (:data result)]
+          data (:body-data result)]
       (is (result/succeeded? result))
       (is data)
       (is (= 200 (:status result)))
@@ -30,4 +30,4 @@
                                            :body {:email "donbonifacio@gmail.com"
                                                   :password "wazabi"}}))]
     (result/failed? result)
-    (is (= "invalid-email-or-password" (first (-> result :body :errors))))))
+    (is (= "invalid-email-or-password" (first (-> result :body-data :errors))))))

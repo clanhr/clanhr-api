@@ -9,12 +9,10 @@
   [service-key expected-name]
   (let [result-ch (clanhr-api/http-get {:service service-key :path "/"})]
     (is result-ch)
-    (let [result (<!! result-ch)
-          data (:body-data result)]
+    (let [result (<!! result-ch)]
       (is (result/succeeded? result))
-      (is data)
       (is (= 200 (:status result)))
-      (is (= (:name data) expected-name)))))
+      (is (= (:name result) expected-name)))))
 
 (deftest apis-home
   (test-api-home :directory-api "ClanHR Directory API")
@@ -30,4 +28,4 @@
                                            :body {:email "donbonifacio@gmail.com"
                                                   :password "wazabi"}}))]
     (result/failed? result)
-    (is (= "invalid-email-or-password" (first (-> result :body-data :errors))))))
+    (is (= "invalid-email-or-password" (first (-> result :data :errors))))))

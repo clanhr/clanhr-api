@@ -28,4 +28,4 @@
                                            :body {:email "donbonifacio@gmail.com"
                                                   :password "wazabi"}}))]
     (result/failed? result)
-    (is (= "invalid-email-or-password" (first (-> result :data :errors))))))
+    (is (= "invalid-email-or-password" (first (-> result :errors))))))

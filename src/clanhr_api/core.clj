@@ -58,10 +58,10 @@
       (instance? clojure.lang.ExceptionInfo response)
         (do
           (track-api-response data
-            {:status (.getMessage response)
-             :error (str "Error getting " (:url data))
-             :request-time (:request-time (.getData response))
-             :data (json/parse-string (slurp (:body (.getData response))) true)}))
+            (merge {:status (.getMessage response)
+                    :error (str "Error getting " (:url data))
+                    :request-time (:request-time (.getData response))}
+                   (json/parse-string (slurp (:body (.getData response))) true))))
       (instance? Throwable response)
         response
       :else

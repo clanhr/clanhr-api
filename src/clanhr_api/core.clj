@@ -38,9 +38,8 @@
   [data response]
   (try
     (track-api-response data response)
-    (-> response
-        (assoc :status (:status response))
-        (assoc :data (json/parse-string (slurp (:body response)) true)))
+    (merge {:status (:status response)}
+           (json/parse-string (slurp (:body response)) true))
     (catch Exception e
       (errors/exception e))))
 
@@ -55,20 +54,20 @@
             {:status 408
              :error (str "Error getting " (:url data))
              :request-time (-> data :http-opts :request-timeout)
-             :body {:message "Timed out"}}))
+             :data {:message "Timed out"}}))
       (instance? clojure.lang.ExceptionInfo response)
         (do
           (track-api-response data
-            {:status (.getMessage response)
-             :error (str "Error getting " (:url data))
-             :request-time (:request-time (.getData response))
-             :body (json/parse-string (slurp (:body (.getData response))) true)}))
+            (merge {:status (.getMessage response)
+                    :error (str "Error getting " (:url data))
+                    :request-time (:request-time (.getData response))}
+                   (json/parse-string (slurp (:body (.getData response))) true))))
       (instance? Throwable response)
         response
       :else
         (-> response
             (assoc :status (-> response :data :cause))
-            (assoc :data (slurp (-> response :data :body)))))
+            (assoc :body-data (slurp (-> response :data :body)))))
     (catch Exception e
       (errors/exception e))))
 

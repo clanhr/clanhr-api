@@ -17,7 +17,7 @@
 (deftest apis-home
   (test-api-home :directory-api "ClanHR Directory API")
   (test-api-home :absences-api "ClanHR Absences API")
-  #_(test-api-home :notifications-api "ClanHR Notifications API"))
+  (test-api-home :notifications-api "notifications-api"))
 
 (deftest error
   (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/waza"}))]

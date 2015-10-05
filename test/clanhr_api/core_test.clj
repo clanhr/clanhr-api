@@ -17,6 +17,7 @@
 (deftest apis-home
   (test-api-home :directory-api "ClanHR Directory API")
   (test-api-home :absences-api "ClanHR Absences API")
+  (test-api-home :reports-api "ClanHR Reports API")
   (test-api-home :notifications-api "notifications-api"))
 
 (deftest error

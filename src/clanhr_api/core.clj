@@ -20,6 +20,7 @@
          {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
           :absences-api (or (env :clanhr-absences-api) "http://absences.api.staging.clanhr.com")
           :notifications-api (or (env :clanhr-notifications-api) "http://notifications.api.staging.clanhr.com")
+          :reports-api (or (env :clanhr-reports-api) "http://reports.api.staging.clanhr.com")
           :http-opts {:connection-timeout *default-timeout*
                       :request-timeout *default-timeout*}}))
 

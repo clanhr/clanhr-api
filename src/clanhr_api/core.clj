@@ -1,7 +1,7 @@
 (ns clanhr-api.core
   "Manages and performs requests to ClanHR's API"
   (:require [environ.core :refer [env]]
-            [clojure.core.async :refer [chan <!! >!! close! go]]
+            [clojure.core.async :refer [chan <!! >!! close! go <! timeout]]
             [manifold.deferred :as d]
             [aleph.http :as http]
             [cheshire.core :as json]
@@ -16,13 +16,14 @@
 (defn- setup
   "Creates configuration for executing requests"
   [opts]
-  (merge opts
-         {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
+  (merge {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
           :absences-api (or (env :clanhr-absences-api) "http://absences.api.staging.clanhr.com")
           :notifications-api (or (env :clanhr-notifications-api) "http://notifications.api.staging.clanhr.com")
           :reports-api (or (env :clanhr-reports-api) "http://reports.api.staging.clanhr.com")
-          :http-opts {:connection-timeout *default-timeout*
-                      :request-timeout *default-timeout*}}))
+          :http-opts (merge {:connection-timeout *default-timeout*
+                             :request-timeout *default-timeout*}
+                            (:http-opts opts))}
+         opts))
 
 (defn- track-api-response
   "Register metrics"
@@ -39,7 +40,8 @@
   [data response]
   (try
     (track-api-response data response)
-    (merge {:status (:status response)}
+    (merge {:status (:status response)
+            :requests (inc (:requests data))}
            (json/parse-string (slurp (:body response)) true))
     (catch Exception e
       (errors/exception e))))
@@ -55,28 +57,40 @@
             {:status 408
              :error (str "Error getting " (:url data))
              :request-time (-> data :http-opts :request-timeout)
+             :requests (inc (:requests data))
              :data {:message "Timed out"}}))
       (instance? clojure.lang.ExceptionInfo response)
         (do
           (track-api-response data
             (merge {:status (.getMessage response)
                     :error (str "Error getting " (:url data))
+                    :requests (inc (:requests data))
                     :request-time (:request-time (.getData response))}
                    (json/parse-string (slurp (:body (.getData response))) true))))
       (instance? Throwable response)
         response
       :else
         (-> response
+            (assoc :requests (inc (:requests data)))
             (assoc :status (-> response :data :cause))
             (assoc :body-data (slurp (-> response :data :body)))))
     (catch Exception e
       (errors/exception e))))
 
+(defn- retry?
+  "Verifies that the given error response is the final one, or that
+  we should try it again."
+  [data response]
+  (and (instance? java.util.concurrent.TimeoutException response)
+       (not= 0 (int (:retries data)))))
+
+(def final-response? (comp not retry?))
+
 (defn- fetch-response
   "Fetches the response for a given URL"
   [data]
   (try
-    (let [result-ch (chan 1)
+    (let [result-ch (or (:result-ch data) (chan 1))
           async-stream ((:method-fn data) (:url data) (:http-opts data))]
       (d/on-realized async-stream
                      (fn [x]
@@ -85,8 +99,16 @@
                          (>!! result-ch (result/failure (prepare-response data x))))
                        (close! result-ch))
                      (fn [x]
-                       (>!! result-ch (result/failure (prepare-error data x)))
-                       (close! result-ch)))
+                       (if (final-response? data x)
+                         (do
+                           (>!! result-ch (result/failure (prepare-error data x)))
+                           (close! result-ch))
+                         (go
+                           (<! (timeout (* 300 (+ 1 (int (:requests data))))))
+                           (fetch-response (-> data
+                                               (assoc :result-ch result-ch)
+                                               (update :retries dec)
+                                               (update :requests inc)))))))
       result-ch)
     (catch Exception e
       (go (errors/exception e)))))
@@ -114,6 +136,8 @@
         http-opts (-> (authentify data (:http-opts data))
                       (add-body data))]
     (assoc data :host host
+                :requests 0
+                :retries (- (or (:retries data) 3) 1)
                 :url url
                 :http-opts http-opts
                 :request-method method

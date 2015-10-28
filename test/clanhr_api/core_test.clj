@@ -12,6 +12,7 @@
     (let [result (<!! result-ch)]
       (is (result/succeeded? result))
       (is (= 200 (:status result)))
+      (is (= 1 (:requests result)))
       (is (= (:name result) expected-name)))))
 
 (deftest apis-home
@@ -22,7 +23,7 @@
 
 (deftest error
   (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/waza"}))]
-    (result/failed? result)))
+    (is (result/failed? result))))
 
 (deftest test-post
   (let [result (<!! (clanhr-api/http-post {:service :directory-api :path "/login"
@@ -30,3 +31,10 @@
                                                   :password "wazabi"}}))]
     (result/failed? result)
     (is (= "invalid-email-or-password" (first (-> result :errors))))))
+
+(deftest test-timeout
+  (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/"
+                                          :retries 1
+                                          :http-opts {:connection-timeout 1}}))]
+    (is (result/failed? result))
+    (is (= 1 (:requests result)))))

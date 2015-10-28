@@ -53,6 +53,7 @@
     (cond
       (instance? java.util.concurrent.TimeoutException response)
         (do
+          (errors/exception response)
           (track-api-response data
             {:status 408
              :error (str "Error getting " (:url data))
@@ -61,6 +62,7 @@
              :data {:message "Timed out"}}))
       (instance? clojure.lang.ExceptionInfo response)
         (do
+          (errors/exception response)
           (track-api-response data
             (merge {:status (.getMessage response)
                     :error (str "Error getting " (:url data))
@@ -68,7 +70,9 @@
                     :request-time (:request-time (.getData response))}
                    (json/parse-string (slurp (:body (.getData response))) true))))
       (instance? Throwable response)
-        response
+        (do
+          (errors/exception response)
+          response)
       :else
         (-> response
             (assoc :requests (inc (:requests data)))

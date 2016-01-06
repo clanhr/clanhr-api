@@ -13,7 +13,7 @@
                                    (or (env :clanhr-internal-api-timeout)
                                        (str (* 10 1000)))))
 
-(defn- setup
+(defn setup
   "Creates configuration for executing requests"
   [opts]
   (merge {:directory-api (or (env :clanhr-directory-api) "http://directory.api.staging.clanhr.com")
@@ -131,11 +131,34 @@
     (assoc http-opts :body (if (map? body) (json/generate-string body) body))
     http-opts))
 
+(defn mothership?
+  "True if the configs states that we are running on a mothership"
+  [data]
+  (or (= "true" (env :clanhr-mothership))
+      (:mothership? data)))
+
+(defn service-port
+  "Gets the port on the local machine where the service is running"
+  [data]
+  (let [service (:service data)
+        port-str (str "clanhr-" (name service) "-port")
+        port-key (keyword port-str)]
+    (or (env port-key)
+        (get data port-key)
+        80)))
+
+(defn service-host
+  "Gets the host of the given service"
+  [data]
+  (if (mothership? data)
+    (str "http://localhost:" (service-port data))
+    (get data (:service data))))
+
 (defn- prepare-data
   "Builds data from data"
   [data method]
   (let [data (setup data)
-        host (get data (:service data))
+        host (service-host data)
         url (str host (:path data))
         http-opts (-> (authentify data (:http-opts data))
                       (add-body data))]

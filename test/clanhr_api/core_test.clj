@@ -38,3 +38,16 @@
                                           :http-opts {:connection-timeout 1}}))]
     (is (result/failed? result))
     (is (= 1 (:requests result)))))
+
+(deftest mothership-bypass-test
+  (testing "defaults to remote service"
+    (let [data (clanhr-api/setup {:service :directory-api})]
+      (is (= 80 (clanhr-api/service-port data)))
+      (is (= "http://directory.api.staging.clanhr.com" (clanhr-api/service-host data)))))
+
+  (testing "local mothership override"
+    (let [data {:mothership? true
+                :service :directory-api
+                :clanhr-directory-api-port 5000}]
+      (is (= 5000 (clanhr-api/service-port data)))
+      (is (= "http://localhost:5000" (clanhr-api/service-host data))))))

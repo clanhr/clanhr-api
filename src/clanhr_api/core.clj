@@ -128,7 +128,7 @@
   "Adds proper body to be sent"
   [http-opts data]
   (if-let [body (:body data)]
-    (assoc http-opts :body (if (map? body) (json/generate-string body) body))
+    (assoc http-opts :body (if (or (map? body) (seq? body)) (json/generate-string body) body))
     http-opts))
 
 (defn mothership?

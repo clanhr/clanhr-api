@@ -46,40 +46,45 @@
     (catch Exception e
       (errors/exception e))))
 
+(defn- register-exception
+  "Registers an exception with proper data"
+  [ex info]
+  (errors/exception (ex-info (:error info) info ex)))
+
 (defn- prepare-error
   "Handles post-response errors"
   [data response]
   (try
     (cond
       (instance? java.util.concurrent.TimeoutException response)
-        (do
-          (errors/exception response)
-          (track-api-response data
-            {:status 408
-             :error (str "Error getting " (:url data))
-             :request-time (-> data :http-opts :request-timeout)
-             :requests (inc (:requests data))
-             :data {:message "Timed out"}}))
-      (instance? clojure.lang.ExceptionInfo response)
-        (do
-          (errors/exception response)
-          (track-api-response data
-            (merge {:status (.getMessage response)
+        (let [info {:status 408
                     :error (str "Error getting " (:url data))
+                    :request-time (-> data :http-opts :request-timeout)
                     :requests (inc (:requests data))
-                    :request-time (:request-time (.getData response))}
-                   (json/parse-string (slurp (:body (.getData response))) true))))
+                    :data {:message "Timed out"}}]
+          (register-exception response info)
+          (track-api-response data info))
+      (instance? clojure.lang.ExceptionInfo response)
+        (let [info (merge {:status (.getMessage response)
+                           :error (str "Error getting " (:url data))
+                           :requests (inc (:requests data))
+                           :request-time (:request-time (.getData response))}
+                   (json/parse-string (slurp (:body (.getData response))) true))]
+          (register-exception response info)
+          (track-api-response data info))
       (instance? Throwable response)
-        (do
-          (errors/exception response)
+        (let [info {:error (str "Error getting " (:url data))}]
+          (register-exception response info)
           response)
       :else
         (-> response
+            (assoc :error (str "Error getting " (:url data)))
             (assoc :requests (inc (:requests data)))
             (assoc :status (-> response :data :cause))
             (assoc :body-data (slurp (-> response :data :body)))))
     (catch Exception e
-      (errors/exception e))))
+      (let [info {:error (str "Error getting " (:url data))}]
+        (register-exception e info)))))
 
 (defn- retry?
   "Verifies that the given error response is the final one, or that

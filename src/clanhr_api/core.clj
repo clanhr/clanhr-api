@@ -6,6 +6,7 @@
             [aleph.http :as http]
             [cheshire.core :as json]
             [result.core :as result]
+            [clojure.string :as clj-str]
             [clanhr.analytics.errors :as errors]
             [clanhr.analytics.metrics :as metrics]))
 
@@ -192,3 +193,10 @@
   "Makes a PUT request to the given API"
   [data]
   (fetch-response (prepare-data data :put)))
+
+(defn query-string-builder
+  [query-string-key data]
+  (when data
+    (if (coll? data)
+      (str query-string-key "=" (clj-str/join "," data))
+      (str query-string-key "=" data))))

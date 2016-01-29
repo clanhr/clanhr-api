@@ -51,3 +51,11 @@
                 :clanhr-directory-api-port 5000}]
       (is (= 5000 (clanhr-api/service-port data)))
       (is (= "http://localhost:5000" (clanhr-api/service-host data))))))
+
+(deftest query-string-builder
+  (testing "with list"
+    (is (= "key=1,2" (clanhr-api/query-string-builder "key" [1 2]))))
+  (testing "with value"
+    (is (= "key=1" (clanhr-api/query-string-builder "key" 1))))
+  (testing "with nil"
+    (is (nil? (clanhr-api/query-string-builder "key" nil)))))

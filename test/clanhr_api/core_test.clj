@@ -64,11 +64,21 @@
   (testing "simple case"
     (is (= "key1=1" (clanhr-api/build-query-string {:key1 1}))))
   (testing "space case"
-    (is (= "key1=1&key2=1%202" (clanhr-api/build-query-string {:key1 1
-                                                               :key2 "1 2"})))))
+    (is (= "key1=1&key2=1%202"
+           (clanhr-api/build-query-string {:key1 1
+                                           :key2 "1 2"})))))
 
 (deftest build-url-test
-  (is (= "http://host.com/path?key1=1&key2=1%202" (clanhr-api/build-url "http://host.com"
-                                                                        "/path"
-                                                                       {:key1 1
-                                                                        :key2 "1 2"}))))
+  (testing "simple case"
+    (is (= "http://host.com/path?key1=1&key2=1%202"
+           (clanhr-api/build-url "http://host.com"
+                                 "/path"
+                                 {:key1 1
+                                  :key2 "1 2"}))))
+  (testing "nil properties"
+    (is (= "http://host.com/path?key1=1"
+           (clanhr-api/build-url "http://host.com"
+                                 "/path"
+                                 {:key1 1
+                                  :key2 nil}))))
+    )

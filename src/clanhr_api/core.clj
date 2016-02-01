@@ -165,23 +165,27 @@
   [query-params]
   (codec/url-encode query-params "UTF-8"))
 
-(defn query-string-builder
+(defn query-string-param-builder
   [query-string-key data]
   (when data
     (if (coll? data)
       (str query-string-key "=" (clj-str/join "," data))
       (str query-string-key "=" data))))
 
+(defn clean-record
+  [record]
+  (apply dissoc record (for [[k v] record :when (nil? v)] k)))
+
 (defn build-query-string
   [query-params]
   (clj-str/join "&"
-    (for [[k v] query-params] (query-string-builder (name k)
-                                                    (url-encode v)))))
+    (for [[k v] query-params] (query-string-param-builder (name k)
+                                                          (url-encode v)))))
 
 (defn build-url
   [host path query-params]
   (if query-params
-    (str host path "?" (build-query-string query-params))
+    (str host path "?" (build-query-string (clean-record query-params)))
     (str host path)))
 
 (defn- prepare-data

@@ -7,6 +7,7 @@
             [cheshire.core :as json]
             [result.core :as result]
             [clojure.string :as clj-str]
+            [ring.util.codec :as codec]
             [clanhr.analytics.errors :as errors]
             [clanhr.analytics.metrics :as metrics]))
 
@@ -160,12 +161,35 @@
     (str "http://localhost:" (service-port data))
     (get data (:service data))))
 
+(defn url-encode
+  [query-params]
+  (codec/url-encode query-params "UTF-8"))
+
+(defn query-string-builder
+  [query-string-key data]
+  (when data
+    (if (coll? data)
+      (str query-string-key "=" (clj-str/join "," data))
+      (str query-string-key "=" data))))
+
+(defn build-query-string
+  [query-params]
+  (clj-str/join "&"
+    (for [[k v] query-params] (query-string-builder (name k)
+                                                    (url-encode v)))))
+
+(defn build-url
+  [host path query-params]
+  (if query-params
+    (str host path "?" (build-query-string query-params))
+    (str host path)))
+
 (defn- prepare-data
   "Builds data from data"
   [data method]
   (let [data (setup data)
         host (service-host data)
-        url (str host (:path data))
+        url (build-url host (:path data) (:query-params data))
         http-opts (-> (authentify data (:http-opts data))
                       (add-body data))]
     (assoc data :host host
@@ -193,10 +217,3 @@
   "Makes a PUT request to the given API"
   [data]
   (fetch-response (prepare-data data :put)))
-
-(defn query-string-builder
-  [query-string-key data]
-  (when data
-    (if (coll? data)
-      (str query-string-key "=" (clj-str/join "," data))
-      (str query-string-key "=" data))))

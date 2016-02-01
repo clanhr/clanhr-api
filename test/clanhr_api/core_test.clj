@@ -59,3 +59,16 @@
     (is (= "key=1" (clanhr-api/query-string-builder "key" 1))))
   (testing "with nil"
     (is (nil? (clanhr-api/query-string-builder "key" nil)))))
+
+(deftest build-query-string-test
+  (testing "simple case"
+    (is (= "key1=1" (clanhr-api/build-query-string {:key1 1}))))
+  (testing "space case"
+    (is (= "key1=1&key2=1%202" (clanhr-api/build-query-string {:key1 1
+                                                               :key2 "1 2"})))))
+
+(deftest build-url-test
+  (is (= "http://host.com/path?key1=1&key2=1%202" (clanhr-api/build-url "http://host.com"
+                                                                        "/path"
+                                                                       {:key1 1
+                                                                        :key2 "1 2"}))))

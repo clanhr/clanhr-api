@@ -85,7 +85,8 @@
             (assoc :status (-> response :data :cause))
             (assoc :body-data (slurp (-> response :data :body)))))
     (catch Exception e
-      (let [info {:error (str "Error getting " (:url data))}]
+      (let [info {:error (str "Error getting " (:url data))
+                  :exception (.getMessage e)}]
         (register-exception e info)))))
 
 (defn- retry?

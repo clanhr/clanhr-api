@@ -54,11 +54,11 @@
 
 (deftest query-string-builder
   (testing "with list"
-    (is (= "key=1,2" (clanhr-api/query-string-builder "key" [1 2]))))
+    (is (= "key=1,2" (clanhr-api/query-string-param-builder "key" [1 2]))))
   (testing "with value"
-    (is (= "key=1" (clanhr-api/query-string-builder "key" 1))))
+    (is (= "key=1" (clanhr-api/query-string-param-builder "key" 1))))
   (testing "with nil"
-    (is (nil? (clanhr-api/query-string-builder "key" nil)))))
+    (is (nil? (clanhr-api/query-string-param-builder "key" nil)))))
 
 (deftest build-query-string-test
   (testing "simple case"

@@ -75,7 +75,8 @@
           (register-exception response info)
           (track-api-response data info))
       (instance? Throwable response)
-        (let [info {:error (str "Error getting " (:url data))}]
+        (let [info {:error (str "Error getting " (:url data))
+                    :caused-by response}]
           (register-exception response info)
           response)
       :else

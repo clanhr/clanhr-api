@@ -1,9 +1,11 @@
-(defproject clanhr/clanhr-api "1.7.3"
+(defproject clanhr/clanhr-api "1.7.4"
   :description "Raw clojure interface to ClanHR's APIs"
   :url "https://github.com/clanhr/clanhr-api"
-  :dependencies.edn "https://raw.githubusercontent.com/clanhr/dependencies/master/dependencies.edn"
-
-  :dependency-sets [:clojure :common :clanhr :aleph]
-  :dependencies []
-
-  :plugins [[clanhr/shared-deps "0.2.6"]])
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/core.async "0.2.374"]
+                 [ring/ring-codec "1.0.0"]
+                 [environ "1.0.2"]
+                 [aleph "0.4.1"]
+                 [cheshire "5.6.1"]
+                 [clanhr/analytics "1.9.1"]
+                 [clanhr/result "0.11.0"]])

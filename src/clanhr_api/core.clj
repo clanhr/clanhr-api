@@ -37,12 +37,20 @@
                        response)
   response)
 
+(defn- get-success
+  "Checks if the response was successful, based on the status code"
+  [response]
+  (let [first-char (-> response :status str first)]
+    (or (= \2 first-char)
+        (= \3 first-char) )))
+
 (defn- prepare-response
   "Handles post-response"
   [data response]
   (try
     (track-api-response data response)
     (merge {:status (:status response)
+            :success (get-success response)
             :requests (inc (:requests data))}
            (json/parse-string (slurp (:body response)) true))
     (catch Exception e
@@ -108,7 +116,7 @@
       (d/on-realized async-stream
                      (fn [x]
                        (if x
-                         (>!! result-ch (result/success (prepare-response data x)))
+                         (>!! result-ch (prepare-response data x))
                          (>!! result-ch (result/failure (prepare-response data x))))
                        (close! result-ch))
                      (fn [x]
@@ -197,6 +205,7 @@
         host (service-host data)
         url (build-url host (:path data) (:query-params data))
         http-opts (-> (authentify data (:http-opts data))
+                      (assoc :throw-exceptions? false)
                       (add-body data))]
     (assoc data :host host
                 :requests 0

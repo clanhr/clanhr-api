@@ -27,9 +27,23 @@
                             (:http-opts opts))}
          opts))
 
+(defn maximum-accepted-request-time-threshold
+  "maximum accepted request time in millis"
+  []
+  (env :maximum-accepted-request-time))
+
+(defn log-request-time
+  [data response]
+  (when-let [threshold (maximum-accepted-request-time-threshold)]
+    (when (and (:request-time response)
+             (< threshold (:request-time response)))
+      (errors/error {} {:data data
+                        :response response}))))
+
 (defn- track-api-response
   "Register metrics"
   [data response]
+  (log-request-time data response)
   (metrics/api-request (or (env :clanhr-env) "test")
                        (:service data)
                        (:request-time response)
@@ -51,6 +65,7 @@
     (track-api-response data response)
     (merge {:status (:status response)
             :success (get-success response)
+            :request-time (:request-time response)
             :requests (inc (:requests data))}
            (json/parse-string (slurp (:body response)) true))
     (catch Exception e

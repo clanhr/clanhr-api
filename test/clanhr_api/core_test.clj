@@ -13,6 +13,7 @@
       (is (result/succeeded? result))
       (is (= 200 (:status result)))
       (is (= 1 (:requests result)))
+      (is (:request-time result))
       (is (= (:name result) expected-name)))))
 
 (deftest apis-home

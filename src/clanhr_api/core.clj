@@ -36,7 +36,7 @@
   [data response]
   (when-let [threshold (maximum-accepted-request-time-threshold)]
     (when (and (:request-time response)
-               (< threshold (:request-time response)))
+               (< (Integer/parseInt threshold) (:request-time response)))
       (errors/error {} {:data data
                         :response response}))))
 

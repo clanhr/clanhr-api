@@ -36,7 +36,7 @@
 (deftest test-timeout
   (let [result (<!! (clanhr-api/http-get {:service :directory-api :path "/"
                                           :retries 1
-                                          :http-opts {:connection-timeout 1}}))]
+                                          :http-opts {:request-timeout 1}}))]
     (is (result/failed? result))
     (is (= 1 (:requests result)))))
 

@@ -56,7 +56,16 @@
   [response]
   (let [first-char (-> response :status str first)]
     (or (= \2 first-char)
-        (= \3 first-char) )))
+        (= \3 first-char))))
+
+(defn- parse-response
+  "Parses the response body"
+  [response]
+  (let [body (slurp (:body response))]
+    (try
+      (json/parse-string body true)
+      (catch Exception ex
+        (throw (Exception. (str "Error parsing json: '" body "'")))))))
 
 (defn- prepare-response
   "Handles post-response"
@@ -67,7 +76,7 @@
             :success (get-success response)
             :request-time (:request-time response)
             :requests (inc (:requests data))}
-           (json/parse-string (slurp (:body response)) true))
+           (parse-response response))
     (catch Exception e
       (errors/exception e))))
 

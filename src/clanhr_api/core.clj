@@ -37,7 +37,7 @@
   (when-let [threshold (maximum-accepted-request-time-threshold)]
     (when (and (:request-time response)
                (< (Integer/parseInt threshold) (:request-time response)))
-      (errors/error {} {:data data
+      (errors/error (ex-info "Log request time failed! " data) {:data data
                         :response response}))))
 
 (defn- track-api-response

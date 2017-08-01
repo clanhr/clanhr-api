@@ -1,4 +1,4 @@
-(defproject clanhr/clanhr-api "1.11.0"
+(defproject clanhr/clanhr-api "1.12.0"
   :description "Raw clojure interface to ClanHR's APIs"
   :url "https://github.com/clanhr/clanhr-api"
   :dependencies [[org.clojure/clojure "1.8.0"]
